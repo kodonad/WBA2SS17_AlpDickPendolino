@@ -1,0 +1,24 @@
+{
+  "name": "wba2ss17_alpdickpendolino",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Aufgabe1.js",
+  "dependencies": {
+    "chalk": "^1.1.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kodonad/WBA2SS17_AlpDickPendolino.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kodonad/WBA2SS17_AlpDickPendolino/issues"
+  },
+  "homepage": "https://github.com/kodonad/WBA2SS17_AlpDickPendolino#readme"
+}
