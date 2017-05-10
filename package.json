@@ -4,6 +4,7 @@
   "description": "",
   "main": "Aufgabe1.js",
   "dependencies": {
+    "bootstrap": "^3.3.7",
     "chalk": "^1.1.3"
   },
   "devDependencies": {},
