@@ -1,4 +1,6 @@
 # WBA2SS17_AlpDickPendolino
+<img alt="Revook" src="https://github.com/kodonad/WBA2SS17_AlpDickPendolino/blob/master/Bilder/logo.png" />
+
 
 # Projektbegründung
 
