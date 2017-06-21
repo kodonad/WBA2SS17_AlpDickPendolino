@@ -5,6 +5,7 @@
 var express = require('express');
 var router = express.Router();
 var request = require('request');
+var fs = require('fs');
 
 
 
@@ -12,6 +13,38 @@ var request = require('request');
    *  METHODS
    ** ***************************** 
 */
+
+function readBooksFromFile(){
+    var content = fs.readFileSync('routes/books/json/books.json').toString(); // liest die Datei synchron aus. (konvertiert zum String)
+    var bookList = "[]";
+    if(content.length > 0){
+      var tempContent = content.substr(0,content.length-1); // Um das letzte Komma aus dem Inhalt zu entfernen.
+      var contentObject = "["+tempContent+"]"; // Um aus den Objekten ein Array zumachen welches die Objekte beinhaltet.
+      var bookList = JSON.parse(contentObject); // parsed den Inhalt der Datei in ein JSON Objekt.
+    }
+    return bookList;
+}
+
+function checkBookList(singleBook,books){
+    var statusFree; // Sagt aus ob ein Buch vorhanden ist oder nicht, true = ist nicht vorhanden, false = ist vorhanden.
+    var notFound = 0; // Anzahl der nicht übereinstimmungen
+    for (var i = 0; i < books.length;i++){
+        
+        if(books[i].id !== singleBook.id){
+            notFound++;
+        }
+        
+    }
+    if(notFound < books.length){
+        statusFree = false;
+    }
+    if(notFound === books.length){
+        statusFree = true;
+    }
+    
+    return statusFree;
+}
+
 function parseBookList(bookList){
     // Die Anzahl der zu suchenden Bücher (bookList) beträgt 10, um eine riesige Datenhaltung zu vermeiden.
     
@@ -55,6 +88,24 @@ function parseBookList(bookList){
 
 function writeBookListIntoFile(bookList){
     var parsedList = parseBookList(bookList); // um eine Bücherliste mit den gewünschten Attributen zu bekommen (dient zum entsorgen von redundanten oder nicht benötigte Informationen)
+    var books = readBooksFromFile(); // Liest die vorhanden Bücher aus der JSON Datei aus.
+    if(books.length > 0){
+    for (var i = 0;i < parsedList.length;i++){
+        var check = checkBookList(parsedList[i],books); // überprüft ob ein Buch aus der Liste bereits in der JSON Datei vorhanden ist.
+        
+        if(check){  // Falls das Buch nicht vorhanden ist füge es in die Datei ein.
+//            console.log(parsedList[i].title+' ist nicht vorhanden.');
+            
+            var writeLine = JSON.stringify(parsedList[i])+",";
+            
+            fs.appendFile("routes/books/json/books.json", writeLine, function(err) {
+                if(err){ console.log(err);}
+                
+            });
+        }
+    }
+                
+    }
     return parsedList;
     
     
@@ -94,7 +145,8 @@ router.get('/',function(req,res){
     }
     else // Falls keine Parameter angegeben sind, sollen alle Bücher aus unserer JSON Datei ausgelesen werden.
     {
-        res.send("Test2");
+        var bookList = readBooksFromFile();
+        res.send(bookList);
     }
 });
 
