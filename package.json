@@ -1,11 +1,12 @@
 {
   "name": "wba2ss17_alpdickpendolino",
   "version": "1.0.0",
-  "description": "",
+  "description": "<img alt=\"Revook\" src=\"https://github.com/kodonad/WBA2SS17_AlpDickPendolino/blob/master/Bilder/logo.png\" />",
   "main": "Aufgabe1.js",
   "dependencies": {
     "bootstrap": "^3.3.7",
-    "chalk": "^1.1.3"
+    "chalk": "^1.1.3",
+    "express": "^4.15.3"
   },
   "devDependencies": {},
   "scripts": {
