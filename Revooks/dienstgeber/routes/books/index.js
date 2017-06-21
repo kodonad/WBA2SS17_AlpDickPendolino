@@ -1,8 +1,17 @@
+/* ** *****************************
+   *  REQUIRE
+   ** ***************************** 
+*/
 var express = require('express');
 var router = express.Router();
 var request = require('request');
 
 
+
+/* ** *****************************
+   *  METHODS
+   ** ***************************** 
+*/
 function parseBookList(bookList){
     // Die Anzahl der zu suchenden Bücher (bookList) beträgt 10, um eine riesige Datenhaltung zu vermeiden.
     
@@ -62,6 +71,10 @@ function getBooksFromApi(queryString,res){
     
 }
 
+/* ** *****************************
+   *  ROUTING
+   ** ***************************** 
+*/
 router.get('/',function(req,res){
     // Object.keys(req.query).length gibt die aktuelle Anzahl der Paramater aus.
     if(Object.keys(req.query).length > 0){ // überprüft ob Parameter angegeben sind
