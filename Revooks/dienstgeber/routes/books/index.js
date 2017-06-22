@@ -247,6 +247,8 @@ router.post('/',bodyParser.json(),function(req,res){
    * Ressource (books/:id)
    ** *****************************
 */
+
+/* ** GET ** */
 router.get('/:id',function(req,res){
     var searchID = req.params.id; // der Wert der ID.
     var books = readBooksFromFile(); // liest die Bücher aus der JSON Datei aus.
@@ -260,6 +262,49 @@ router.get('/:id',function(req,res){
           res.send(books[i]);
           break;
       }
+    }
+    if(exists === false){
+        res.status(400).send("Es existiert kein Buch mit dieser ID");
+    }    
+});
+
+/* ** PUT ** */
+router.put('/:id',bodyParser.json(),function(req,res){
+    
+});
+
+/* ** DELETE ** */
+router.delete('/:id',function(req,res){
+    var searchID = req.params.id; // der Wert der ID.
+    var bookList = readBooksFromFile(); // liest die Bücher aus der JSON Datei aus.
+    
+    var exists = false;
+    for(var i = 0;i < bookList.length;i++){
+       if(bookList[i].id === searchID){
+           var bookTitle = bookList[i].title; // um ausgeben zukönnen welches Buch gelöscht wurde.
+           exists = true;
+           
+           bookList.splice(bookList[i],1); // entfernt das Buch aus der Liste.
+           console.log(bookList);
+           /* truncate dient dazu alle Bücher aus der books.json zu löschen. Dadurch, dass bereits zuvor der Inhalt in die Variable books 
+              geschrieben wurde, und das zu entfernende Buch aus diesem Array entfernt wurde, wird problemlos der Inhalt der Variable
+              books, welche alle Bücher enthält, in die books.json geschrieben.
+           */
+           
+           fs.truncate("routes/books/json/books.json",0, function(err){
+               
+               console.log(bookList.length);
+               for(var i = 0 ; i < bookList.length;i++){ // schreibt jedes einzelne Buch aus der Liste der Bücher in die books.json
+                 
+                   var writeLine = JSON.stringify(bookList[i])+",";
+               
+                    fs.appendFile("routes/books/json/books.json",writeLine, function(err){
+                     
+                    });
+               }
+           });
+         res.status(200).send("Das Buch mit dem Titel: "+bookTitle+" wurde erfolgreich gelöscht.");
+       }
     }
     if(exists === false){
         res.status(400).send("Es existiert kein Buch mit dieser ID");
