@@ -6,6 +6,7 @@ var express = require('express');
 var router = express.Router();
 var request = require('request');
 var fs = require('fs');
+var bodyParser = require('body-parser');
 
 
 
@@ -34,7 +35,7 @@ function readBooksFromFile(){
 }
 
 /* ** **************************************************************************
-   *  checkBookList
+   *  checkIfExistingBook
    *  ---------------
    *  Überprüft ob ein Buch schon Bereits in der JSON Datei vorhanden ist.
    *  Logik: Jedes Buch hat eine ID. Hier wird die ID des zu hinzuzufügenden
@@ -45,7 +46,7 @@ function readBooksFromFile(){
    *         so gilt : Zähler = die Anzahl der Bücher. 
    ** **************************************************************************
 */
-function checkBookList(singleBook,books){
+function checkIfExistingBook(singleBook,books){
     var statusFree; // Sagt aus ob ein Buch vorhanden ist oder nicht, true = ist nicht vorhanden, false = ist vorhanden.
     var notFound = 0; // Anzahl der nicht übereinstimmungen
     for (var i = 0; i < books.length;i++){
@@ -124,7 +125,7 @@ function writeBookListIntoFile(bookList){
     var books = readBooksFromFile(); // Liest die vorhanden Bücher aus der JSON Datei aus.
     if(books.length > 0){
     for (var i = 0;i < parsedList.length;i++){
-        var check = checkBookList(parsedList[i],books); // überprüft ob ein Buch aus der Liste bereits in der JSON Datei vorhanden ist.
+        var check = checkIfExistingBook(parsedList[i],books); // überprüft ob ein Buch aus der Liste bereits in der JSON Datei vorhanden ist.
         
         if(check){  // Falls das Buch nicht vorhanden ist füge es in die Datei ein.
 //            console.log(parsedList[i].title+' ist nicht vorhanden.');
@@ -173,6 +174,8 @@ function getBooksFromApi(queryString,res){
    * Ressource (books/)
    ** *****************************
 */
+
+/* ** GET ** */  // TODO: Genre muss noch implementiert werden!
 router.get('/',function(req,res){
     // Object.keys(req.query).length gibt die aktuelle Anzahl der Paramater aus.
     if(Object.keys(req.query).length > 0){ // überprüft ob Parameter angegeben sind
@@ -195,6 +198,73 @@ router.get('/',function(req,res){
         var bookList = readBooksFromFile();
         res.send(bookList);
     }
+});
+
+/* ** POST ** */
+router.post('/',bodyParser.json(),function(req,res){
+    var book = req.body;
+    var attributeCounter = 0;
+
+    for ( var attribute in book){ // Zählt wieviele Attribute in dem Bücher Objekt enthalten sind.
+        attributeCounter++;
+    }
+
+    if(book.id && book.isbn && book.lang && book.title && book.description && book.authors && book.pubdate 
+       && book.publisher && attributeCounter === 8){ // Dient zur Überprüfung ob wirklich alle Attribute existieren
+        
+        var books = readBooksFromFile(); // liest die Bücher aus der JSON Datei aus.
+        
+        var check = checkIfExistingBook(book,books);
+        
+        if(check){
+            
+            var writeLine = JSON.stringify(book)+",";
+            
+            fs.appendFile("routes/books/json/books.json", writeLine, function(err) {
+                if(err){ res.writeHead(500);
+                         res.write(err);
+                         res.end();}
+                else{
+                    res.status(200).send("Buch erfolgreich angelegt.");
+                }
+                
+            });
+            
+        }
+        else{
+            res.writeHead(400);
+            res.write("Es gibt bereits ein Buch mit dieser ID");
+            res.end();
+        }
+    }
+    else{
+        res.writeHead(406);
+        res.write("kein gültiges Buchobjekt, bitte überprüfen!");
+        res.end();
+    }
+});
+/* ** *****************************
+   * Ressource (books/:id)
+   ** *****************************
+*/
+router.get('/:id',function(req,res){
+    var searchID = req.params.id; // der Wert der ID.
+    var books = readBooksFromFile(); // liest die Bücher aus der JSON Datei aus.
+    
+    var exists = false;
+    
+    for(var i = 0 ; i < books.length;i++ )
+    {
+      if(books[i].id === searchID){
+          exists = true;
+          res.send(books[i]);
+          break;
+      }
+    }
+    if(exists === false){
+        res.status(400).send("Es existiert kein Buch mit dieser ID");
+    }
+    
 });
 
 
