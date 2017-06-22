@@ -14,6 +14,14 @@ var fs = require('fs');
    ** ***************************** 
 */
 
+
+/* ** **************************************************************************
+   *  readBooksFromFile
+   *  ---------------
+   *  liest alle Bücher aus der JSON Datei aus, speichert sie in ein Array
+   *  und gibt sie anschließend zurück.
+   ** **************************************************************************
+*/
 function readBooksFromFile(){
     var content = fs.readFileSync('routes/books/json/books.json').toString(); // liest die Datei synchron aus. (konvertiert zum String)
     var bookList = "[]";
@@ -25,6 +33,18 @@ function readBooksFromFile(){
     return bookList;
 }
 
+/* ** **************************************************************************
+   *  checkBookList
+   *  ---------------
+   *  Überprüft ob ein Buch schon Bereits in der JSON Datei vorhanden ist.
+   *  Logik: Jedes Buch hat eine ID. Hier wird die ID des zu hinzuzufügenden
+   *         Buches mit den IDs der Bücher aus der JSON Datei überprüft,
+   *         Für jede nicht übereinstimmung wird ein Zähler inkrementiert.
+   *         sollte ein Buch nicht vorhanden sein, 
+   *         
+   *         so gilt : Zähler = die Anzahl der Bücher. 
+   ** **************************************************************************
+*/
 function checkBookList(singleBook,books){
     var statusFree; // Sagt aus ob ein Buch vorhanden ist oder nicht, true = ist nicht vorhanden, false = ist vorhanden.
     var notFound = 0; // Anzahl der nicht übereinstimmungen
@@ -45,6 +65,13 @@ function checkBookList(singleBook,books){
     return statusFree;
 }
 
+/* ** **************************************************************************
+   *  parseBookList
+   *  ---------------
+   *  Filtert gewünschte Attribute aus den API Objekten und schreibt es in eine
+   *  Liste die dann zurückgegeben wird.
+   ** **************************************************************************
+*/
 function parseBookList(bookList){
     // Die Anzahl der zu suchenden Bücher (bookList) beträgt 10, um eine riesige Datenhaltung zu vermeiden.
     
@@ -86,6 +113,12 @@ function parseBookList(bookList){
 }
 
 
+/* ** **************************************************************************
+   *  writeBookListIntoFile
+   *  ---------------
+   *  schreibt jedes Buch einzeln in die books.json Datei.
+   ** **************************************************************************
+*/
 function writeBookListIntoFile(bookList){
     var parsedList = parseBookList(bookList); // um eine Bücherliste mit den gewünschten Attributen zu bekommen (dient zum entsorgen von redundanten oder nicht benötigte Informationen)
     var books = readBooksFromFile(); // Liest die vorhanden Bücher aus der JSON Datei aus.
@@ -110,13 +143,21 @@ function writeBookListIntoFile(bookList){
     
     
 }
+
+/* ** **************************************************************************
+   *  getBooksFromApi
+   *  ---------------
+   *  leitet die Suchanfrage von unserer API zur Google API über. Nachdem
+   *   die Daten ausgelesen wurden, werden sie vor der Ausgabe noch verarbeitet.
+   ** ************************************************************************** 
+*/
 function getBooksFromApi(queryString,res){
     var url = "https://www.googleapis.com/books/v1/volumes?q="+queryString; // Google API Call Url, inklusive des benötigten Querys.
     request.get(url, function(error,response,body){ // API Request
                 var responseBody;
                 var bookList;
                 responseBody = JSON.parse(body);
-                var bookList = writeBookListIntoFile(responseBody); // Dient nur zur testweisen Ausgabe momentan.
+                var bookList = writeBookListIntoFile(responseBody);
                 res.send(bookList);
                     });
     
@@ -125,6 +166,12 @@ function getBooksFromApi(queryString,res){
 /* ** *****************************
    *  ROUTING
    ** ***************************** 
+*/
+
+
+/* ** *****************************
+   * Ressource (books/)
+   ** *****************************
 */
 router.get('/',function(req,res){
     // Object.keys(req.query).length gibt die aktuelle Anzahl der Paramater aus.
@@ -136,7 +183,7 @@ router.get('/',function(req,res){
                 case 'q': getBooksFromApi(req.query[param],res); // Um die Bücher aus der Google API zu laden, und diese später zu verarbeiten. || das res wird übergeben um mit den verarbeiteten Daten später ein Response zu senden.
                           
                     break;
-                case 'id': res.send("ist ID");
+                case 'genre': res.send("Hier sollen die Genres stehen.");
                     break;
                     
                 default: res.send("");
