@@ -115,6 +115,32 @@ function parseBookList(bookList){
 
 
 /* ** **************************************************************************
+   *  updateFile
+   *  ---------------
+   *  aktualisiert die books.json Datei.
+   ** **************************************************************************
+*/
+function updateFile(bookList){
+    
+    /* truncate dient dazu alle Bücher aus der books.json zu löschen. Dadurch, dass bereits zuvor der Inhalt in die Variable bookList 
+       geschrieben wurde, wird problemlos der Inhalt der Variable
+       bookList, welche alle Bücher enthält, in die books.json geschrieben.
+    */
+    fs.truncate("routes/books/json/books.json",0, function(err){
+               
+      for(var i = 0 ; i < bookList.length;i++){ // schreibt jedes einzelne Buch aus der Liste der Bücher in die books.json
+                 
+            var writeLine = JSON.stringify(bookList[i])+",";
+               
+            fs.appendFile("routes/books/json/books.json",writeLine, function(err){
+                     
+            });
+        }
+    });
+}
+
+
+/* ** **************************************************************************
    *  writeBookListIntoFile
    *  ---------------
    *  schreibt jedes Buch einzeln in die books.json Datei.
@@ -183,12 +209,9 @@ router.get('/',function(req,res){
             
             // Der switch überprüft, welcher Paramater gesetzt ist, es kann immer nur einer gesetzt sein.
             switch(param){
-                case 'q': getBooksFromApi(req.query[param],res); // Um die Bücher aus der Google API zu laden, und diese später zu verarbeiten. || das res wird übergeben um mit den verarbeiteten Daten später ein Response zu senden.
+                case 'title': getBooksFromApi(req.query[param],res); // Um die Bücher aus der Google API zu laden, und diese später zu verarbeiten. || das res wird übergeben um mit den verarbeiteten Daten später ein Response zu senden.
                           
                     break;
-                case 'genre': res.send("Hier sollen die Genres stehen.");
-                    break;
-                    
                 default: res.send("");
             }
         }
@@ -210,7 +233,7 @@ router.post('/',bodyParser.json(),function(req,res){
     }
 
     if(book.id && book.isbn && book.lang && book.title && book.description && book.authors && book.pubdate 
-       && book.publisher && attributeCounter === 8){ // Dient zur Überprüfung ob wirklich alle Attribute existieren
+       && book.publisher && attributeCounter === 8){ // Dient zur Überprüfung ob wirklich alle Attribute existieren und keine zusätzlichen Attribute zusätzlich gespeichert werden.
         
         var books = readBooksFromFile(); // liest die Bücher aus der JSON Datei aus.
         
@@ -225,7 +248,7 @@ router.post('/',bodyParser.json(),function(req,res){
                          res.write(err);
                          res.end();}
                 else{
-                    res.status(200).send("Buch erfolgreich angelegt.");
+                    res.status(201).send("Buch erfolgreich angelegt.");
                 }
                 
             });
@@ -250,16 +273,16 @@ router.post('/',bodyParser.json(),function(req,res){
 
 /* ** GET ** */
 router.get('/:id',function(req,res){
-    var searchID = req.params.id; // der Wert der ID.
+    var reqID = req.params.id; // der Wert der ID.
     var books = readBooksFromFile(); // liest die Bücher aus der JSON Datei aus.
     
     var exists = false;
     
     for(var i = 0 ; i < books.length;i++ )
     {
-      if(books[i].id === searchID){
+      if(books[i].id === reqID){ // falls eines der Bücher die ID hat die mit der request id übereinstimmen.
           exists = true;
-          res.send(books[i]);
+          res.status(200).send(books[i]);
           break;
       }
     }
@@ -270,39 +293,63 @@ router.get('/:id',function(req,res){
 
 /* ** PUT ** */
 router.put('/:id',bodyParser.json(),function(req,res){
+
+    var reqID = req.params.id; // die ID des abzuänderten Buches.
+    var newBook = req.body; // Die Informationen des neu zu speichernden Buches
+    var bookList = readBooksFromFile(); // liest die Bücher aus der JSON Datei aus.
     
+    var exists = false;
+    
+    console.log(newBook);
+    
+    for (var i = 0; i < bookList.length; i++){
+        
+        if(bookList[i].id === reqID){ // falls eines der Bücher die ID hat die mit der request id übereinstimmen.
+            
+            var bookToChange; // =  Aktuelles Buch ohne Änderung der Buchinformationen.
+            var changedBook; // = neues Buch mit Änderungen der Buchinformationen.
+            
+            exists = true;
+            bookToChange = bookList[i];
+            
+            changedBook = bookToChange; // Schreibt das Aktuelle Buch in die changedBook Variable, dessen Attribute überschrieben werden.
+            
+            for (var attrNew in newBook){ // für jedes Attribut in der abgeänderten Buchinformation.
+        
+                for (var attr in changedBook){ // für jedes Attribut in der jetzigen Buchinformation. 
+            
+                    if(attrNew === attr){
+                    changedBook[attr] = newBook[attrNew]; // überschreibt den Wert des Attributs mit dem des neuen.
+                    }
+                }
+            
+            }
+         bookList[i] = changedBook; // überschreibt das Buch aus der Bücherliste.
+         
+         updateFile(bookList);
+        res.status(201).send("Buchinformation erfolreich aktualisiert.");
+        }
+        
+    }
+    if(exists === false){
+        res.status(400).send("Es existiert kein Buch mit dieser ID");
+    }
 });
+
 
 /* ** DELETE ** */
 router.delete('/:id',function(req,res){
-    var searchID = req.params.id; // der Wert der ID.
+    var reqID = req.params.id; // der Wert der ID.
     var bookList = readBooksFromFile(); // liest die Bücher aus der JSON Datei aus.
     
     var exists = false;
     for(var i = 0;i < bookList.length;i++){
-       if(bookList[i].id === searchID){
+       if(bookList[i].id === reqID){ // falls eines der Bücher die ID hat die mit der request id übereinstimmen.
            var bookTitle = bookList[i].title; // um ausgeben zukönnen welches Buch gelöscht wurde.
            exists = true;
            
            bookList.splice(bookList[i],1); // entfernt das Buch aus der Liste.
-           console.log(bookList);
-           /* truncate dient dazu alle Bücher aus der books.json zu löschen. Dadurch, dass bereits zuvor der Inhalt in die Variable books 
-              geschrieben wurde, und das zu entfernende Buch aus diesem Array entfernt wurde, wird problemlos der Inhalt der Variable
-              books, welche alle Bücher enthält, in die books.json geschrieben.
-           */
-           
-           fs.truncate("routes/books/json/books.json",0, function(err){
-               
-               console.log(bookList.length);
-               for(var i = 0 ; i < bookList.length;i++){ // schreibt jedes einzelne Buch aus der Liste der Bücher in die books.json
-                 
-                   var writeLine = JSON.stringify(bookList[i])+",";
-               
-                    fs.appendFile("routes/books/json/books.json",writeLine, function(err){
-                     
-                    });
-               }
-           });
+           updateFile(bookList);
          res.status(200).send("Das Buch mit dem Titel: "+bookTitle+" wurde erfolgreich gelöscht.");
        }
     }
