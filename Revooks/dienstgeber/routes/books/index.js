@@ -37,30 +37,17 @@ function readBooksFromFile(){
 /* ** **************************************************************************
    *  checkIfExistingBook
    *  ---------------
-   *  Überprüft ob ein Buch schon Bereits in der JSON Datei vorhanden ist.
-   *  Logik: Jedes Buch hat eine ID. Hier wird die ID des zu hinzuzufügenden
-   *         Buches mit den IDs der Bücher aus der JSON Datei überprüft,
-   *         Für jede nicht übereinstimmung wird ein Zähler inkrementiert.
-   *         sollte ein Buch nicht vorhanden sein, 
-   *         
-   *         so gilt : Zähler = die Anzahl der Bücher. 
+   *  Überprüft ob ein Buch schon Bereits in der JSON Datei vorhanden ist. 
    ** **************************************************************************
 */
 function checkIfExistingBook(singleBook,books){
-    var statusFree; // Sagt aus ob ein Buch vorhanden ist oder nicht, true = ist nicht vorhanden, false = ist vorhanden.
-    var notFound = 0; // Anzahl der nicht übereinstimmungen
+    var statusFree = true; // Sagt aus ob ein Buch vorhanden ist oder nicht, true = ist nicht vorhanden, false = ist vorhanden.
     for (var i = 0; i < books.length;i++){
         
-        if(books[i].id !== singleBook.id){
-            notFound++;
-        }
-        
-    }
-    if(notFound < books.length){
-        statusFree = false;
-    }
-    if(notFound === books.length){
-        statusFree = true;
+        if(books[i].id === singleBook.id){
+            statusFree = false;
+            break;
+        }   
     }
     
     return statusFree;
@@ -196,12 +183,12 @@ function getBooksFromApi(queryString,res){
 */
 
 
-/* ** *****************************
-   * Ressource (books/)
-   ** *****************************
+/* ---------------------------------
+   >>  Ressource (books/)
+   ---------------------------------
 */
 
-/* ** GET ** */  // TODO: Genre muss noch implementiert werden!
+/* ** GET ** */
 router.get('/',function(req,res){
     // Object.keys(req.query).length gibt die aktuelle Anzahl der Paramater aus.
     if(Object.keys(req.query).length > 0){ // überprüft ob Parameter angegeben sind
@@ -209,8 +196,7 @@ router.get('/',function(req,res){
             
             // Der switch überprüft, welcher Paramater gesetzt ist, es kann immer nur einer gesetzt sein.
             switch(param){
-                case 'title': getBooksFromApi(req.query[param],res); // Um die Bücher aus der Google API zu laden, und diese später zu verarbeiten. || das res wird übergeben um mit den verarbeiteten Daten später ein Response zu senden.
-                          
+                case 'title': getBooksFromApi(req.query[param],res); // Um die Bücher aus der Google API zu laden, und diese später zu verarbeiten. || das res wird übergeben um mit den verarbeiteten Daten später ein Response zu senden.             
                     break;
                 default: res.send("");
             }
@@ -266,9 +252,9 @@ router.post('/',bodyParser.json(),function(req,res){
         res.end();
     }
 });
-/* ** *****************************
-   * Ressource (books/:id)
-   ** *****************************
+/* ---------------------------------
+   >>  Ressource (books/:id)
+   ---------------------------------
 */
 
 /* ** GET ** */
