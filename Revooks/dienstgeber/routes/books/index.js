@@ -334,7 +334,7 @@ router.delete('/:id',function(req,res){
            var bookTitle = bookList[i].title; // um ausgeben zukönnen welches Buch gelöscht wurde.
            exists = true;
            
-           bookList.splice(bookList[i],1); // entfernt das Buch aus der Liste.
+           bookList.splice(i,1); // entfernt das Buch aus der Liste. (i = die aktuelle Stelle im Array)
            updateFile(bookList);
          res.status(200).send("Das Buch mit dem Titel: "+bookTitle+" wurde erfolgreich gelöscht.");
        }
