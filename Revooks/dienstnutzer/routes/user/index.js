@@ -248,7 +248,23 @@ router.delete('/:id',function(req,res){
    ---------------------------------
 */
 router.get('/:id/favorites',function(req,res){
+    var userID = req.params.id;
+    var userList = readUserFromFile();
+    var exists = false;
     
+    for(var i = 0;i < userList.length;i++){
+        if(userList[i].id === userID){ // wenn der Benutzer existiert
+            exists = true;
+            var fileUrl = 'routes/user/json/favorites/user_'+userID+'.json'; // der Pfad an den für jeden Benutzer eine Favoritenliste angelegt wird.
+            
+            var favoriteList = readFavoritesFromFile(fileUrl); // liest die Favoritenliste aus der Datei aus.
+            
+            res.status(200).send(favoriteList); // gibt die Favoritenliste aus.
+        }
+    }
+    if(exists === false){
+        res.status(400).send("Es existiert kein Benutzer mit dieser ID");
+    }
 });
 
 router.post('/:id/favorites',bodyParser.json(),function(req,res){
