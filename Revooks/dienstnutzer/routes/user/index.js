@@ -6,6 +6,7 @@ var express = require('express');
 var router = express.Router();
 var fs = require('fs');
 var bodyParser = require('body-parser');
+var request = require('request');
 
 
 
@@ -33,6 +34,23 @@ function readUserFromFile(){
 }
 
 /* ** **************************************************************************
+   *  readFavoritesFromFile
+   *  ---------------
+   *  liest alle Bücher aus der Favoriten JSON Datei eines bestimmten Benutzerss aus, speichert sie in ein Array
+   *  und gibt sie anschließend zurück.
+   ** **************************************************************************
+*/
+function readFavoritesFromFile(fileUrl){
+    var content = fs.readFileSync(fileUrl).toString();
+    var favoriteList = "[]";
+    if(content.length > 0){
+        var tempContent = content.substr(0,content.length-1); // Um das letzte Komma aus dem Inhalt zu entfernen.
+        var contentObject = "["+tempContent+"]"; // Um aus den Objekten ein Array zumachen welches die Objekte beinhaltet.
+        var favoriteList = JSON.parse(contentObject);
+    }
+    return favoriteList;
+}
+/* ** **************************************************************************
    *  checkIfExistingUser
    *  ---------------
    *  Überprüft ob ein Benutzer schon Bereits in der JSON Datei vorhanden ist. 
@@ -51,7 +69,26 @@ function checkIfExistingUser(user,userList){
     
     return statusFree;
 }
-
+/* ** **************************************************************************
+   *  checkIfExistingFavorite
+   *  ---------------
+   *  Überprüft ob ein Buch schon Bereits in der Favoriten JSON Datei eines 
+   *  Benutzers vorhanden ist. 
+   ** **************************************************************************
+*/
+function checkIfExistingFavorite(favoriteBook,favoriteList){
+    var statusFree = true; // Sagt aus ob ein Buch vorhanden ist oder nicht, true = ist nicht vorhanden, false = ist vorhanden.
+    
+    for (var i = 0; i < favoriteList.length;i++){
+        
+        if(favoriteList[i].id === favoriteBook.id){
+            statusFree = false;
+            break;
+        }    
+    }
+    
+    return statusFree;
+}
 /* ** **************************************************************************
    *  updateFile
    *  ---------------
@@ -204,6 +241,108 @@ router.delete('/:id',function(req,res){
         res.status(400).send("Es existiert kein Benutzer mit dieser ID");
     }
      
+});
+
+/* ---------------------------------
+   >>  Ressource (user/:id/favorites)
+   ---------------------------------
+*/
+router.get('/:id/favorites',function(req,res){
+    
+});
+
+router.post('/:id/favorites',bodyParser.json(),function(req,res){
+     var userID = req.params.id;
+     var userList = readUserFromFile();
+    
+     var exists = false;
+     
+     for(var i = 0; i < userList.length;i++){
+         if(userList[i].id === userID){ // wenn der Benutzer existiert
+            exists = true;
+             
+            var fileUrl = 'routes/user/json/favorites/user_'+userID+'.json'; // der Pfad an den für jeden Benutzer eine Favoritenliste angelegt wird.
+            var favoriteBook = req.body; 
+    
+            var checkIfFileExists = fs.existsSync(fileUrl); // überprüft ob die Datei exisiert
+     
+    
+            if(checkIfFileExists){ // falls sie existiert
+            var reqUrl = 'http://localhost:3000/books/'+favoriteBook.id; // Fragt nach ob das Buch mit dieser ID beim Dienstgeber existiert.
+                request.get(reqUrl,function(error,response,body){
+    
+            switch(response.statusCode){
+                
+                case 200 : 
+                    var favoriteList = readFavoritesFromFile(fileUrl);
+                    var check = checkIfExistingFavorite(favoriteBook,favoriteList);
+                    
+                    if(check){
+                        
+                        var writeLine = JSON.stringify(favoriteBook)+",";
+                        
+                        fs.appendFile(fileUrl,writeLine,function(err){             
+                            });
+                        
+                        res.status(201).send("Buch wurde erfolgreich der Favoritenliste hinzugefügt.");
+                    }
+                    else{
+                        
+                        res.status(400).send("Dieses Buch existiert bereits in der Favoritenliste.");
+                        
+                    }
+                    break;
+                
+                case 400 : 
+                    res.status(400).send(body); // Buch existiert nicht, dementsprechend kann dieses Buch nicht zur Favoritenliste hinzugefügt werden.
+                    break;
+                
+                default: break;
+            }
+            
+        });
+     }
+    
+        else{  // falls sie nicht existiert.
+        var reqUrl = 'http://localhost:3000/books/'+favoriteBook.id; // Fragt nach ob das Buch mit dieser ID beim Dienstgeber existiert.
+         request.get(reqUrl,function(error,response,body){
+             
+             switch(response.statusCode){ // überprüft den StatusCode der Abfrage , 200 = OK , 400 = Bad Request
+                 
+                 case 200: // Buch existiert, kann in die Favoritenliste geschrieben werden.
+                     var writeLine = JSON.stringify(favoriteBook)+",";
+                     fs.writeFile(fileUrl,writeLine,function(err){
+                         
+                     });
+                     res.status(201).send("Buch wurde erfolgreich der Favoritenliste hinzugefügt.");
+                           break;
+                 
+                 case 400: 
+                     res.status(400).send(body); // Buch existiert nicht, dementsprechend kann dieses Buch nicht zur Favoritenliste hinzugefügt werden.
+                           break;
+                 
+                 default:  res.status(500).send(error);
+             }
+            })
+        }
+             
+      }
+     }
+    if(exists === false){
+        res.status(400).send("Es existiert kein Benutzer mit dieser ID");
+    }
+});
+
+/* ---------------------------------
+   >>  Ressource (user/:id/favorites/:id)
+   ---------------------------------
+*/
+router.get('/:id/favorites/:id',function(req,res){
+    
+});
+
+router.delete('/:id/favorites/:id',function(req,res){
+    
 });
 
 //Bereitstellen des Moduls um require in der app.js einbinden zu können.
