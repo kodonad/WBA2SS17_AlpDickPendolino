@@ -267,10 +267,16 @@ router.get('/:id/favorites',function(req,res){
         if(userList[i].id === userID){ // wenn der Benutzer existiert
             exists = true;
             var fileUrl = 'routes/user/json/favorites/user_'+userID+'.json'; // der Pfad an den für jeden Benutzer eine Favoritenliste angelegt wird.
+            if(fs.existsSync(fileUrl)){
+                
             
             var favoriteList = readFavoritesFromFile(fileUrl); // liest die Favoritenliste aus der Datei aus.
             
             res.status(200).send(favoriteList); // gibt die Favoritenliste aus.
+            }
+            else{
+                res.status(400).send("Dieser Benutzer verfügt über keine Favoritenliste");
+            }
         }
     }
     if(exists === false){
@@ -366,11 +372,48 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
 */
 router.get('/:id/favorites/:favid',function(req,res){
     var favID = req.params.favid;
-    var reqUrl = 'http://localhost:3000/books/'+favID; // führt einen GET Befehl auf die Dienstgeber Ressource Books aus.
-    request.get(reqUrl,function(error,response,body){
-       res.status(response.statusCode).send(JSON.parse(body));  // wandelt den Inhalt der Response in ein JSON Objekt um.
+    var userID = req.params.id;
+    
+    var userList = readUserFromFile();
+    
+    var checkUser = checkIfIdentificatorExists(userID,userList); // Überprüft ob der Benutzer existiert.
+    if(checkUser){ // falls der Benutzer existiert.
+        var fileUrl = 'routes/user/json/favorites/user_'+userID+'.json';
+        if(fs.existsSync(fileUrl)){
+            
         
-    });
+        var favoriteList = readFavoritesFromFile(fileUrl);
+        var checkFavorite = checkIfIdentificatorExists(favID,favoriteList); // Überprüft ob das Buch bereits in der Favoritenliste existiert.
+        if(checkFavorite){ // falls das Buch dort existiert.
+            
+            var reqUrl = 'http://localhost:3000/books/'+favID; // führt einen GET Befehl auf die Dienstgeber Ressource Books aus.
+                
+                request.get(reqUrl,function(error,response,body){
+                switch(response.statusCode){
+                    case 200:
+                        res.status(response.statusCode).send(JSON.parse(body));  // wandelt den Inhalt der Response in ein JSON Objekt um.
+                        break;
+                    case 400:
+                        res.status(response.statusCode).send(body); // Response = text/plain, deswegen JSON.parse nicht nötig.
+                        break;
+                    default: break;
+                }
+                
+                });
+        }
+        else{
+            res.status(400).send("Dieses Buch existiert nicht in der Favoritenliste");            
+            }
+        }
+        else{
+            res.status(400).send("Dieser Benutzer verfügt über keine Favoritenliste.");
+        }
+        
+    }
+    else{
+        res.status(400).send("Es existiert kein Benutzer mit dieser ID.");
+    }
+    
 });
 
 router.delete('/:id/favorites/:favid',function(req,res){
@@ -383,7 +426,7 @@ router.delete('/:id/favorites/:favid',function(req,res){
     var checkUser = checkIfIdentificatorExists(userID,userList); // Überprüft ob der Benutzer existiert.
     if(checkUser){ // falls der Benutzer existiert.
         var fileUrl = 'routes/user/json/favorites/user_'+userID+'.json'; // Favoriten Datei des Nutzers : Bsp: user_2.json
-        
+        if(fs.existsSync(fileUrl)){
         var favoriteList = readFavoritesFromFile(fileUrl); // liest alle Bücher aus der Favoritenliste aus.
         
         var reqUrl = 'http://localhost:3000/books/'+favID; // Url der Bücher Ressource des Dienstgebers.
@@ -426,6 +469,10 @@ router.delete('/:id/favorites/:favid',function(req,res){
         });
         
         
+        }
+        else{
+            res.status(400).send("Dieser Benutzer verfügt über keine Favoritenliste.")
+        }
     }
     else{ // Falls der Benutzer nicht existieren sollte.
         res.status(400).send("Es existiert kein Benutzer mit dieser ID");
