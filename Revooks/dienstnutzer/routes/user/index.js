@@ -51,17 +51,18 @@ function readFavoritesFromFile(fileUrl){
     return favoriteList;
 }
 /* ** **************************************************************************
-   *  checkIfExistingUser
+   *  checkIfObjectExists
    *  ---------------
-   *  Überprüft ob ein Benutzer schon Bereits in der JSON Datei vorhanden ist. 
+   *  Überprüft ob ein Objekt schon Bereits in der JSON Datei vorhanden ist.
    ** **************************************************************************
 */
-function checkIfExistingUser(user,userList){
-    var statusFree = true; // Sagt aus ob ein Benutzer vorhanden ist oder nicht, true = ist nicht vorhanden, false = ist vorhanden.
+function checkIfObjectExists(singleObj,objList){
     
-    for (var i = 0; i < userList.length;i++){
+    var statusFree = true; // Sagt aus ob ein Objekt vorhanden ist oder nicht, true = ist nicht vorhanden, false = ist vorhanden.
+    
+    for (var i = 0; i < objList.length;i++){
         
-        if(userList[i].id === user.id){
+        if(objList[i].id === singleObj.id){
             statusFree = false;
             break;
         }    
@@ -70,24 +71,20 @@ function checkIfExistingUser(user,userList){
     return statusFree;
 }
 /* ** **************************************************************************
-   *  checkIfExistingFavorite
+   *  checkIfIdentificatorExists
    *  ---------------
-   *  Überprüft ob ein Buch schon Bereits in der Favoriten JSON Datei eines 
-   *  Benutzers vorhanden ist. 
+   *  Ähnlich wie checkIfObjectExists , der Unterschied hier ist, dass er ein
+   *  true zurück gibt, wenn das Objekt existiert, da hier nur abgefragt werden soll,
+   *  Ob es existiert.
    ** **************************************************************************
 */
-function checkIfExistingFavorite(favoriteBook,favoriteList){
-    var statusFree = true; // Sagt aus ob ein Buch vorhanden ist oder nicht, true = ist nicht vorhanden, false = ist vorhanden.
-    
-    for (var i = 0; i < favoriteList.length;i++){
-        
-        if(favoriteList[i].id === favoriteBook.id){
-            statusFree = false;
+function checkIfIdentificatorExists(id,objList){
+    for ( var i = 0; i < objList.length;i++){
+        if(objList[i].id === id){
+            return true;
             break;
-        }    
+        }
     }
-    
-    return statusFree;
 }
 /* ** **************************************************************************
    *  updateFile
@@ -113,6 +110,9 @@ function updateFile(userList){
         }
     });
 }
+function updateFavoriteList(favoriteList,res,fileUrl){
+    //TODO!!!   
+}
 
 
 /* ** *****************************
@@ -137,7 +137,7 @@ router.post('/',bodyParser.json(),function(req,res){
     var userList = readUserFromFile();
     
     
-    var check = checkIfExistingUser(userObject,userList);
+    var check = checkIfObjectExists(userObject,userList);
     
     if(check){
         var writeLine = JSON.stringify(userObject)+","; // das "," dient dazu innerhalb der JSON Datei die einzelnen Benutzer aufzulisten.
@@ -291,7 +291,7 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
                 
                 case 200 : 
                     var favoriteList = readFavoritesFromFile(fileUrl);
-                    var check = checkIfExistingFavorite(favoriteBook,favoriteList);
+                    var check = checkIfObjectExists(favoriteBook,favoriteList);
                     
                     if(check){
                         
@@ -353,8 +353,8 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
    >>  Ressource (user/:id/favorites/:id)
    ---------------------------------
 */
-router.get('/:id/favorites/:id',function(req,res){
-    var favID = req.params.id;
+router.get('/:id/favorites/:favid',function(req,res){
+    var favID = req.params.favid;
     var reqUrl = 'http://localhost:3000/books/'+favID; // führt einen GET Befehl auf die Dienstgeber Ressource Books aus.
     request.get(reqUrl,function(error,response,body){
        res.status(response.statusCode).send(JSON.parse(body));  // wandelt den Inhalt der Response in ein JSON Objekt um.
@@ -362,7 +362,63 @@ router.get('/:id/favorites/:id',function(req,res){
     });
 });
 
-router.delete('/:id/favorites/:id',function(req,res){
+router.delete('/:id/favorites/:favid',function(req,res){
+    var favID = req.params.favid; // Die ID des Buches in der Favoritenliste.
+    var userID = req.params.id; // Die ID des Benutzers.
+    
+    var userList = readUserFromFile(); // liest die gesamten Benutzer aus der Datei aus.
+    
+    
+    var checkUser = checkIfIdentificatorExists(userID,userList); // Überprüft ob der Benutzer existiert.
+    if(checkUser){ // falls der Benutzer existiert.
+        var fileUrl = 'routes/user/json/favorites/user_'+userID+'.json'; // Favoriten Datei des Nutzers : Bsp: user_2.json
+        
+        var favoriteList = readFavoritesFromFile(fileUrl); // liest alle Bücher aus der Favoritenliste aus.
+        
+        var reqUrl = 'http://localhost:3000/books/'+favID; // Url der Bücher Ressource des Dienstgebers.
+        
+        request.get(reqUrl,function(error,response,body){ // GET Request auf diese Url
+           
+            switch(response.statusCode){ // überprüft ob die Anfrage erfolgreich war.
+                    
+                case 200: // Das Buch existiert beim Dienstgeber.
+                    var checkFavorite = checkIfIdentificatorExists(favID,favoriteList);
+                    
+                    
+                    if(checkFavorite){ // falls das Buch in der Favoritenliste existiert.
+                        
+                        var newFavoriteList = favoriteList; // kopiert die Favoritenliste in ein neues Array.
+                        
+                        for(var i = 0; i < favoriteList.length ; i++){
+                            
+                            if(favoriteList[i].id === favID){ // Falls das Buch mit der gewünschten ID gefunden wurde
+                                
+                                newFavoriteList.splice(i,1); // lösche es aus der Favoritenliste raus.
+                                break;
+                            }
+                        }
+                        updateFavoriteList(newFavoriteList,res,fileUrl);    // Aktualisiert die Favoritenliste des aktuellen Benutzers.
+                        
+                    }
+                    else{
+                        res.status(400).send("Dieses Buch existiert nicht in der Favoritenliste dieses Benutzers.");
+                    }
+                    break;
+                    
+                case 400: // Das Buch existiert nicht beim Dienstgeber.
+                    res.status(response.statusCode).send(body);
+                    break;
+                    
+                default: break;
+            }
+            
+        });
+        
+        
+    }
+    else{ // Falls der Benutzer nicht existieren sollte.
+        res.status(400).send("Es existiert kein Benutzer mit dieser ID");
+    }
     
 });
 
