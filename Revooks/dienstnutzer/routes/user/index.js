@@ -111,7 +111,18 @@ function updateFile(userList){
     });
 }
 function updateFavoriteList(favoriteList,res,fileUrl){
-    //TODO!!!   
+    fs.truncate(fileUrl,0, function(err){
+               
+      for(var i = 0 ; i < favoriteList.length;i++){ // schreibt jeden einzelnen Benutzer aus der Liste der Benutzer in die user.json
+                 
+            var writeLine = JSON.stringify(favoriteList[i])+",";
+               
+            fs.appendFile(fileUrl,writeLine, function(err){
+               res.status(200).send("Buch erfolgreich aus der Favoritenliste entfernt.");      
+            });
+        }
+        
+    }); 
 }
 
 
