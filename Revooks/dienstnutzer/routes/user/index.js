@@ -354,7 +354,12 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
    ---------------------------------
 */
 router.get('/:id/favorites/:id',function(req,res){
-    
+    var favID = req.params.id;
+    var reqUrl = 'http://localhost:3000/books/'+favID; // führt einen GET Befehl auf die Dienstgeber Ressource Books aus.
+    request.get(reqUrl,function(error,response,body){
+       res.status(response.statusCode).send(JSON.parse(body));  // wandelt den Inhalt der Response in ein JSON Objekt um.
+        
+    });
 });
 
 router.delete('/:id/favorites/:id',function(req,res){
