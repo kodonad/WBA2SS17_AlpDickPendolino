@@ -212,6 +212,19 @@ function checkDirectorySync(directory) {
     fs.mkdirSync(directory);
   }
 }
+
+function checkIfValidFavorite(favoriteBook){
+    var attrCounter = 0;
+    for(var attr in favoriteBook){
+        attrCounter++;
+    }
+    if(favoriteBook.id && attrCounter == 1){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
 /* ** *****************************
    *  ROUTING
    ** ***************************** 
@@ -413,10 +426,14 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
              
             var fileUrl = __dirname+'/json/favorites/user_'+userID+'.json'; // der Pfad an den für jeden Benutzer eine Favoritenliste angelegt wird.
             var favoriteBook = req.body; 
-    
+            
+            var checkIfValid = checkIfValidFavorite(favoriteBook);
+            if(checkIfValid){
+                
+            
             var checkIfFileExists = fs.existsSync(fileUrl); // überprüft ob die Datei exisiert
      
-    
+      
             if(checkIfFileExists){ // falls sie existiert
             var reqUrl = serviceUrl+'/books/'+favoriteBook.id; // Fragt nach ob das Buch mit dieser ID beim Dienstgeber existiert.
                 request.get(reqUrl,function(error,response,body){
@@ -477,7 +494,10 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
             });    
         
         }
-             
+        }
+         else{
+             res.status(406).send("Bitte beachten Sie , dass nur die ID des Buches im zu erstellenden Objekt vorhanden ist.");
+         }
       }
      }
     if(exists === false){
@@ -685,7 +705,6 @@ router.get('/:id/suggestions',function(req,res){
                             }
                         }
                     }
-                    
                     var suggestionList = checkIfFavoriteExistsInSuggestion(favoriteList,suggestionList); // Überprüft ob favorisierte Bücher in den Vorschlägen existieren, falls ja , werden diese aus den Vorschlägen entfernt.
                        
                     
