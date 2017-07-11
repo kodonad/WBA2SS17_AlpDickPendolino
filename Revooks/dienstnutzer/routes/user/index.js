@@ -125,6 +125,21 @@ function updateFavoriteList(favoriteList,res,fileUrl){
     }); 
 }
 
+function checkIfFavoriteExistsInSuggestion(favoriteList,suggestionList){
+    // Überprüfung ob das favorisierte Buch in der Vorschlägeliste enthalten ist, sollte dies der Fall sein wird das Buch aus der Liste entfernt.
+    for(var i = 0; i < favoriteList.length; i++){
+         for(var s = 0; s < suggestionList.length; s++){
+        console.log("S: "+suggestionList[s].id+" F: "+favoriteList[i].id)
+        if(suggestionList[s].id == favoriteList[i].id){
+            console.log(suggestionList[s].title);
+            suggestionList.splice(s,1);
+            break;
+            }
+    }
+    }
+   
+   return suggestionList;                   
+}
 
 /* ** *****************************
    *  ROUTING
@@ -476,6 +491,121 @@ router.delete('/:id/favorites/:favid',function(req,res){
     }
     else{ // Falls der Benutzer nicht existieren sollte.
         res.status(400).send("Es existiert kein Benutzer mit dieser ID");
+    }
+    
+});
+
+
+/* ---------------------------------
+   >>  Ressource (user/:id/suggestions)
+   ---------------------------------
+*/
+
+/* - Dies ist unsere Anwendungslogik für den User. Dem User werden an Hand seiner Favoriten eine Handvoll Bücher vorgeschlagen.
+   - Als erstes wird überprüft ob der User existiert gefolgt von der Favoritenliste.
+   - Dann werden die Bücher aus der jeweiligen Favoritenliste ausgelesen.
+   - Die ausgelesenen Bücher der Favoritenliste werden mit den Büchern vom Dienstgeber verglichen (Autor)
+   - Zum Schluss werden diese Bücher ausgegeben.
+*/
+
+router.get('/:id/suggestions',function(req,res){
+    var userID = req.params.id;
+    
+    var userList = readUserFromFile(); // liest die gesamten Benutzer aus der Datei aus.
+    
+    
+    var checkUser = checkIfIdentificatorExists(userID,userList); // Überprüft ob der Benutzer existiert.
+    
+    if(checkUser){
+        var fileUrl = 'routes/user/json/favorites/user_'+userID+'.json'; // Favoriten Datei des Nutzers : Bsp: user_2.json
+        if(fs.existsSync(fileUrl)){
+            var favoriteList = readFavoritesFromFile(fileUrl); // liest alle Bücher aus der Favoritenliste aus.
+            
+            var reqUrl = 'http://localhost:3000/books/'  // um alle Bücher abzufragen, die beim Dienstgeber existieren.
+            
+            request.get(reqUrl,function(error,response,body){ // GET Request auf diese Url
+            
+            switch(response.statusCode){ // überprüft ob die Anfrage erfolgreich war.
+                    
+                case 200: // Es existieren Bücher beim Dienstgeber.
+                    var bookList = JSON.parse(body); // wandelt den Inhalt der Response in ein JSON Objekt um.
+                    
+                    for (var i = 0 ; i < favoriteList.length; i++){ // für Jede Buch ID die in der Favoritenliste eingetragen wurde, wird das zugehörige Buch aus der Bücherliste gesucht.
+                        
+                        for ( var j = 0 ; j < bookList.length ; j++){
+                            
+                            if(favoriteList[i].id == bookList[j].id){
+                                favoriteList[i] = bookList[j];  // Überschreibt das Favoriten Buch, welches nur die ID hat, mit dem kompletten Bücher Datensatz, welches zu dieser ID gehört.
+                                break;
+                            }
+                        }
+                        
+                    }
+                    // ** Zwischenstopp! Ab Hier befindet sich in der FavoritenListe vollständige Buchinformationen, dementsprechend  können jetzt die Autoren verglichen werden.
+                    var suggestionList = [];
+                    
+                    for(var i = 0 ; i < favoriteList.length ; i++){ // For Schleife um durch die Favoritenliste zu iterieren
+                        for ( var j = 0 ; j < bookList.length ; j++){ // For Schleife um durch die Bücher zu iterieren
+                                
+                            
+                                    //console.log(bookList[j].title);
+                                /* Liest jeweils die Autoren aus um diese zu vergleichen */
+                                for(var author in favoriteList[i].authors){ 
+                                    
+                                    for (var author2 in bookList[j].authors){ 
+                                      
+                                        /* Überprüft, ob die Autoren der Favoriten Bücher auch andere Bücher verfasst haben */
+                                        if(favoriteList[i].authors[author] == bookList[j].authors[author]){
+                                        
+                                            if(suggestionList.length > 0){ // Vorschlägeliste existiert, und hat einen Eintrag, so dass man überprüfen kann, ob die folgenden Bücher schon dort vorhanden sind.
+                                                var existsInList = false;
+                                                for(var s = 0 ; s < suggestionList.length; s++){
+                                                    if(suggestionList[s].id == bookList[j].id){ // Überprüft ob das vorzuschlagende Buch schon in den Vorschlägen enthalten ist.
+                                                        existsInList = true;
+                                                        break;
+                                                    }
+                                                }
+                                                if(existsInList === false){
+                                                    suggestionList.push(bookList[j]); // falls das Buch noch nicht vorhanden ist , wird es hinzugefügt.
+                                                }
+                                            }
+                                            else{ // Vorschlägeliste existiert noch nicht, erster Eintrag wird ausgeführt.
+                                                suggestionList.push(bookList[j]);
+                                            }
+                                        
+                                        }
+                                    }
+                                
+                              
+                            }
+                        }
+                    }
+                    
+                    var suggestionList = checkIfFavoriteExistsInSuggestion(favoriteList,suggestionList); // Überprüft ob favorisierte Bücher in den Vorschlägen existieren, falls ja , werden diese aus den Vorschlägen entfernt.
+                       
+                    
+                    res.status(200).send(suggestionList);
+                    break;
+                    
+                case 400: // Es existieren keine Bücher beim Dienstgeber.
+                    res.status(response.statusCode).send(body);
+                    break;
+                    
+                default: break;
+                
+                }
+                    
+            });
+            
+            
+        }
+        else{
+            res.status(404).send("Es konnten keine Vorschläge für diesen Benutzer gefunden werden. (der Benutzer verfügt über keine Favoriten)"); // Falls keine Favoritenliste existiert, können auch keine Vorschläge generiert werden.
+            
+        }
+    }
+    else{ 
+        res.status(404).send("Es existiert kein Benutzer mit dieser ID");
     }
     
 });
