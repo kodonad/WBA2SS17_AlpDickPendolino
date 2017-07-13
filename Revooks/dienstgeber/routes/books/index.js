@@ -8,7 +8,7 @@ var request = require('request');
 var fs = require('fs');
 var bodyParser = require('body-parser');
 
-var _path = __dirname+'json/books.json'; // globale Variable
+var _path = __dirname+'/json/books.json'; // globale Variable
 
 /* ** *****************************
    *  METHODS
