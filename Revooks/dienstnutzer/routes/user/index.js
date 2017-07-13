@@ -201,7 +201,7 @@ router.get('/:id',function(req,res){
     }
     
     if(exists === false){
-        res.status(400).send("Es existiert kein Benutzer mit dieser ID");
+        res.status(404).send("Es existiert kein Benutzer mit dieser ID");
     }
 });
 /* ** PUT ** */
@@ -243,7 +243,7 @@ router.put('/:id',bodyParser.json(),function(req,res){
         
     }
     if(exists === false){
-        res.status(400).send("Es existiert kein Benutzer mit dieser ID");
+        res.status(404).send("Es existiert kein Benutzer mit dieser ID");
     }
 });
 
@@ -264,7 +264,7 @@ router.delete('/:id',function(req,res){
        }
     }
     if(exists === false){
-        res.status(400).send("Es existiert kein Benutzer mit dieser ID");
+        res.status(404).send("Es existiert kein Benutzer mit dieser ID");
     }
      
 });
@@ -290,12 +290,12 @@ router.get('/:id/favorites',function(req,res){
             res.status(200).send(favoriteList); // gibt die Favoritenliste aus.
             }
             else{
-                res.status(400).send("Dieser Benutzer verfügt über keine Favoritenliste");
+                res.status(404).send("Dieser Benutzer verfügt über keine Favoritenliste");
             }
         }
     }
     if(exists === false){
-        res.status(400).send("Es existiert kein Benutzer mit dieser ID");
+        res.status(404).send("Es existiert kein Benutzer mit dieser ID");
     }
 });
 
@@ -341,8 +341,8 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
                     }
                     break;
                 
-                case 400 : 
-                    res.status(400).send(body); // Buch existiert nicht, dementsprechend kann dieses Buch nicht zur Favoritenliste hinzugefügt werden.
+                case 404 : 
+                    res.status(404).send(body); // Buch existiert nicht, dementsprechend kann dieses Buch nicht zur Favoritenliste hinzugefügt werden.
                     break;
                 
                 default: break;
@@ -365,8 +365,8 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
                      res.status(201).send("Buch wurde erfolgreich der Favoritenliste hinzugefügt.");
                            break;
                  
-                 case 400: 
-                     res.status(400).send(body); // Buch existiert nicht, dementsprechend kann dieses Buch nicht zur Favoritenliste hinzugefügt werden.
+                 case 404: 
+                     res.status(404).send(body); // Buch existiert nicht, dementsprechend kann dieses Buch nicht zur Favoritenliste hinzugefügt werden.
                            break;
                  
                  default:  res.status(500).send(error);
@@ -377,7 +377,7 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
       }
      }
     if(exists === false){
-        res.status(400).send("Es existiert kein Benutzer mit dieser ID");
+        res.status(404).send("Es existiert kein Benutzer mit dieser ID");
     }
 });
 
@@ -408,7 +408,7 @@ router.get('/:id/favorites/:favid',function(req,res){
                     case 200:
                         res.status(response.statusCode).send(JSON.parse(body));  // wandelt den Inhalt der Response in ein JSON Objekt um.
                         break;
-                    case 400:
+                    case 404:
                         res.status(response.statusCode).send(body); // Response = text/plain, deswegen JSON.parse nicht nötig.
                         break;
                     default: break;
@@ -470,11 +470,11 @@ router.delete('/:id/favorites/:favid',function(req,res){
                         
                     }
                     else{
-                        res.status(400).send("Dieses Buch existiert nicht in der Favoritenliste dieses Benutzers.");
+                        res.status(404).send("Dieses Buch existiert nicht in der Favoritenliste dieses Benutzers.");
                     }
                     break;
                     
-                case 400: // Das Buch existiert nicht beim Dienstgeber.
+                case 404: // Das Buch existiert nicht beim Dienstgeber.
                     res.status(response.statusCode).send(body);
                     break;
                     
@@ -486,11 +486,11 @@ router.delete('/:id/favorites/:favid',function(req,res){
         
         }
         else{
-            res.status(400).send("Dieser Benutzer verfügt über keine Favoritenliste.")
+            res.status(404).send("Dieser Benutzer verfügt über keine Favoritenliste.")
         }
     }
     else{ // Falls der Benutzer nicht existieren sollte.
-        res.status(400).send("Es existiert kein Benutzer mit dieser ID");
+        res.status(404).send("Es existiert kein Benutzer mit dieser ID");
     }
     
 });
@@ -587,7 +587,7 @@ router.get('/:id/suggestions',function(req,res){
                     res.status(200).send(suggestionList);
                     break;
                     
-                case 400: // Es existieren keine Bücher beim Dienstgeber.
+                case 404: // Es existieren keine Bücher beim Dienstgeber.
                     res.status(response.statusCode).send(body);
                     break;
                     

@@ -367,7 +367,7 @@ router.put('/:id',bodyParser.json(),function(req,res){
         
     }
     if(exists === false){
-        res.status(400).send("Es existiert kein Buch mit dieser ID");
+        res.status(404).send("Es existiert kein Buch mit dieser ID");
     }
  
 });
@@ -390,7 +390,7 @@ router.delete('/:id',function(req,res){
        }
     }
     if(exists === false){
-        res.status(400).send("Es existiert kein Buch mit dieser ID");
+        res.status(404).send("Es existiert kein Buch mit dieser ID");
     }
 });
 
