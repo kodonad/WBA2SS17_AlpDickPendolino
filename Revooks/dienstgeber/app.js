@@ -6,7 +6,7 @@ var app = express();
 
 //Konstante zur Konfiguration
 var settings = {
-    port: 3000
+    port: process.env.PORT || 3000
 };
 
 

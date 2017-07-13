@@ -9,7 +9,7 @@ var bodyParser = require('body-parser');
 var request = require('request');
 
 
-
+var serviceUrl = process.env.SERVICEURL || 'http://localhost:3000';
 /* ** *****************************
    *  METHODS
    ** ***************************** 
@@ -316,7 +316,7 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
      
     
             if(checkIfFileExists){ // falls sie existiert
-            var reqUrl = 'http://localhost:3000/books/'+favoriteBook.id; // Fragt nach ob das Buch mit dieser ID beim Dienstgeber existiert.
+            var reqUrl = serviceUrl+'/books/'+favoriteBook.id; // Fragt nach ob das Buch mit dieser ID beim Dienstgeber existiert.
                 request.get(reqUrl,function(error,response,body){
     
             switch(response.statusCode){
@@ -352,7 +352,7 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
      }
     
         else{  // falls sie nicht existiert.
-        var reqUrl = 'http://localhost:3000/books/'+favoriteBook.id; // Fragt nach ob das Buch mit dieser ID beim Dienstgeber existiert.
+        var reqUrl = serviceUrl+'/books/'+favoriteBook.id; // Fragt nach ob das Buch mit dieser ID beim Dienstgeber existiert.
          request.get(reqUrl,function(error,response,body){
              
              switch(response.statusCode){ // überprüft den StatusCode der Abfrage , 200 = OK , 400 = Bad Request
@@ -401,7 +401,7 @@ router.get('/:id/favorites/:favid',function(req,res){
         var checkFavorite = checkIfIdentificatorExists(favID,favoriteList); // Überprüft ob das Buch bereits in der Favoritenliste existiert.
         if(checkFavorite){ // falls das Buch dort existiert.
             
-            var reqUrl = 'http://localhost:3000/books/'+favID; // führt einen GET Befehl auf die Dienstgeber Ressource Books aus.
+            var reqUrl = serviceUrl+'/books/'+favID; // führt einen GET Befehl auf die Dienstgeber Ressource Books aus.
                 
                 request.get(reqUrl,function(error,response,body){
                 switch(response.statusCode){
@@ -444,7 +444,7 @@ router.delete('/:id/favorites/:favid',function(req,res){
         if(fs.existsSync(fileUrl)){
         var favoriteList = readFavoritesFromFile(fileUrl); // liest alle Bücher aus der Favoritenliste aus.
         
-        var reqUrl = 'http://localhost:3000/books/'+favID; // Url der Bücher Ressource des Dienstgebers.
+        var reqUrl = serviceUrl+'/books/'+favID; // Url der Bücher Ressource des Dienstgebers.
         
         request.get(reqUrl,function(error,response,body){ // GET Request auf diese Url
            
@@ -521,7 +521,7 @@ router.get('/:id/suggestions',function(req,res){
         if(fs.existsSync(fileUrl)){
             var favoriteList = readFavoritesFromFile(fileUrl); // liest alle Bücher aus der Favoritenliste aus.
             
-            var reqUrl = 'http://localhost:3000/books/'  // um alle Bücher abzufragen, die beim Dienstgeber existieren.
+            var reqUrl = serviceUrl+'/books/'  // um alle Bücher abzufragen, die beim Dienstgeber existieren.
             
             request.get(reqUrl,function(error,response,body){ // GET Request auf diese Url
             
