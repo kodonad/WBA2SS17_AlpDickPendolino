@@ -8,7 +8,7 @@ var request = require('request');
 var fs = require('fs');
 var bodyParser = require('body-parser');
 
-var _path = 'routes/books/json/books.json'; // globale Variable
+var _path = __dirname+'json/books.json'; // globale Variable
 
 /* ** *****************************
    *  METHODS
@@ -25,7 +25,6 @@ var _path = 'routes/books/json/books.json'; // globale Variable
 */
 function readBooksFromFile(){
     
-    console.log(__dirname);
     if(fs.existsSync(_path)){ // wenn die Bücher Datei existiert.
     var content = fs.readFileSync(_path).toString(); // liest die Datei synchron aus. (konvertiert zum String)
     var bookList = "[]";
