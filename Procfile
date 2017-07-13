@@ -1,1 +1,1 @@
-web: node revooks/dienstgeber/app.js
+web: node Revooks/dienstgeber/app.js
