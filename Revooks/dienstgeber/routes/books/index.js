@@ -8,7 +8,7 @@ var request = require('request');
 var fs = require('fs');
 var bodyParser = require('body-parser');
 
-
+var _path = 'routes/books/json/books.json'; // globale Variable
 
 /* ** *****************************
    *  METHODS
@@ -24,14 +24,20 @@ var bodyParser = require('body-parser');
    ** **************************************************************************
 */
 function readBooksFromFile(){
-    var content = fs.readFileSync('routes/books/json/books.json').toString(); // liest die Datei synchron aus. (konvertiert zum String)
+    
+    if(fs.existsSync(_path)){ // wenn die Bücher Datei existiert.
+    var content = fs.readFileSync(_path).toString(); // liest die Datei synchron aus. (konvertiert zum String)
     var bookList = "[]";
     if(content.length > 0){
       var tempContent = content.substr(0,content.length-1); // Um das letzte Komma aus dem Inhalt zu entfernen.
       var contentObject = "["+tempContent+"]"; // Um aus den Objekten ein Array zumachen welches die Objekte beinhaltet.
       var bookList = JSON.parse(contentObject); // parsed den Inhalt der Datei in ein JSON Objekt.
+    
+        }
     }
-    alert("klappt noch alles");
+    else{ // falls sie nicht existiert.
+        return false; // Um abzufangen , wenn es keine Bücher gibt.
+    }
     return bookList;
 }
 
@@ -114,13 +120,13 @@ function updateFile(bookList){
        geschrieben wurde, wird problemlos der Inhalt der Variable
        bookList, welche alle Bücher enthält, in die books.json geschrieben.
     */
-    fs.truncate("routes/books/json/books.json",0, function(err){
+    fs.truncate(_path,0, function(err){
                
       for(var i = 0 ; i < bookList.length;i++){ // schreibt jedes einzelne Buch aus der Liste der Bücher in die books.json
                  
             var writeLine = JSON.stringify(bookList[i])+",";
                
-            fs.appendFile("routes/books/json/books.json",writeLine, function(err){
+            fs.appendFile(_path,writeLine, function(err){
                      
             });
         }
@@ -137,26 +143,34 @@ function updateFile(bookList){
 function writeBookListIntoFile(bookList){
     var parsedList = parseBookList(bookList); // um eine Bücherliste mit den gewünschten Attributen zu bekommen (dient zum entsorgen von redundanten oder nicht benötigte Informationen)
     var books = readBooksFromFile(); // Liest die vorhanden Bücher aus der JSON Datei aus.
-    if(books.length > 0){
+    if(books && books.length > 0){
     for (var i = 0;i < parsedList.length;i++){
         var check = checkIfExistingBook(parsedList[i],books); // überprüft ob ein Buch aus der Liste bereits in der JSON Datei vorhanden ist.
         
         if(check){  // Falls das Buch nicht vorhanden ist füge es in die Datei ein.
-//            console.log(parsedList[i].title+' ist nicht vorhanden.');
-            
             var writeLine = JSON.stringify(parsedList[i])+",";
             
-            fs.appendFile("routes/books/json/books.json", writeLine, function(err) {
+            fs.appendFile(_path, writeLine, function(err) {
                 if(err){ console.log(err);}
                 
             });
         }
     }
-                
+        
     }
+    else{ // falls die Bücher Datei leer ist werden die Bücher aus dem API Request in die Datei eingefügt. Falls die Datei vorher nicht existiert hat, wird sie angelegt.
+        for(var i = 0;i < parsedList.length; i++){
+            
+        var writeLine = JSON.stringify(parsedList[i])+",";
+            
+            fs.appendFile(_path, writeLine, function(err) {
+                if(err){ console.log(err);}
+        });
+            
+        }
+    }
+    
     return parsedList;
-    
-    
 }
 
 /* ** **************************************************************************
@@ -177,6 +191,31 @@ function getBooksFromApi(queryString,res){
                     });
     
 }
+
+/* ** **************************************************************************
+   *  checkIfValidBookObject
+   *  ---------------
+   *  Überprüft ob das zu erstellende Buch die Anforderungen entspricht
+   ** ************************************************************************** 
+*/
+function checkIfValidBookObject(book){
+    var attributeCounter = 0;
+    
+    for ( var attribute in book){ // Zählt wieviele Attribute in dem Bücher Objekt enthalten sind.
+        attributeCounter++;
+    }
+    
+    if(book.id && book.isbn && book.lang && book.title && book.description && book.authors && book.pubdate 
+       && book.publisher && attributeCounter === 8){ // Dient zur Überprüfung ob wirklich alle Attribute existieren und keine zusätzlichen Attribute zusätzlich gespeichert werden.
+        
+        return true;
+    }
+    else{
+        return false;
+    }
+    
+}
+
 
 /* ** *****************************
    *  ROUTING
@@ -206,31 +245,36 @@ router.get('/',function(req,res){
     else // Falls keine Parameter angegeben sind, sollen alle Bücher aus unserer JSON Datei ausgelesen werden.
     {
         var bookList = readBooksFromFile();
-        res.send(bookList);
+        if(bookList){
+            res.status(200).send(bookList);
+        }
+        else{
+            res.status(404).send("Es existieren noch keine Bücher in der Anwendung");
+        }
     }
 });
 
 /* ** POST ** */
 router.post('/',bodyParser.json(),function(req,res){
     var book = req.body;
-    var attributeCounter = 0;
+    
+    
+    var isValid = checkIfValidBookObject(book);
+    
 
-    for ( var attribute in book){ // Zählt wieviele Attribute in dem Bücher Objekt enthalten sind.
-        attributeCounter++;
-    }
-
-    if(book.id && book.isbn && book.lang && book.title && book.description && book.authors && book.pubdate 
-       && book.publisher && attributeCounter === 8){ // Dient zur Überprüfung ob wirklich alle Attribute existieren und keine zusätzlichen Attribute zusätzlich gespeichert werden.
+    if(isValid){ // Dient zur Überprüfung ob wirklich alle Attribute existieren und keine zusätzlichen Attribute zusätzlich gespeichert werden.
         
         var books = readBooksFromFile(); // liest die Bücher aus der JSON Datei aus.
         
+        if(books){
+            
         var check = checkIfExistingBook(book,books);
         
         if(check){
             
             var writeLine = JSON.stringify(book)+",";
             
-            fs.appendFile("routes/books/json/books.json", writeLine, function(err) {
+            fs.appendFile(_path, writeLine, function(err) {
                 if(err){ res.writeHead(500);
                          res.write(err);
                          res.end();}
@@ -242,16 +286,22 @@ router.post('/',bodyParser.json(),function(req,res){
             
         }
         else{
-            res.writeHead(400);
-            res.write("Es gibt bereits ein Buch mit dieser ID");
+                res.writeHead(400);
+                res.write("Es gibt bereits ein Buch mit dieser ID");
+                res.end();
+            }
+        
+       
+      }
+      else{
+          res.status(404).send("Es existieren noch keine Bücher in der Anwendung");
+      }
+     }
+     else{
+            res.writeHead(406);
+            res.write('kein gültiges Buchobjekt,\n  ==>\n "id": int \n "isbn":[{"type":"xyz","identifier":"xyz"}]\n "lang":"xyz" \n "title":"xyz"\n "description":"xyz" \n "authors":["xyz"]\n "pubdate":"01.01.1990"\n "publisher":"xyz"');
             res.end();
         }
-    }
-    else{
-        res.writeHead(406);
-        res.write("kein gültiges Buchobjekt, bitte überprüfen!");
-        res.end();
-    }
 });
 /* ---------------------------------
    >>  Ressource (books/:id)
@@ -274,7 +324,7 @@ router.get('/:id',function(req,res){
       }
     }
     if(exists === false){
-        res.status(400).send("Es existiert kein Buch mit dieser ID");
+        res.status(404).send("Es existiert kein Buch mit dieser ID");
     }    
 });
 
@@ -286,8 +336,6 @@ router.put('/:id',bodyParser.json(),function(req,res){
     var bookList = readBooksFromFile(); // liest die Bücher aus der JSON Datei aus.
     
     var exists = false;
-    
-    console.log(newBook);
     
     for (var i = 0; i < bookList.length; i++){
         
@@ -321,6 +369,7 @@ router.put('/:id',bodyParser.json(),function(req,res){
     if(exists === false){
         res.status(400).send("Es existiert kein Buch mit dieser ID");
     }
+ 
 });
 
 
@@ -328,7 +377,7 @@ router.put('/:id',bodyParser.json(),function(req,res){
 router.delete('/:id',function(req,res){
     var reqID = req.params.id; // der Wert der ID.
     var bookList = readBooksFromFile(); // liest die Bücher aus der JSON Datei aus.
-    
+
     var exists = false;
     for(var i = 0;i < bookList.length;i++){
        if(bookList[i].id === reqID){ // falls eines der Bücher die ID hat die mit der request id übereinstimmen.
@@ -343,7 +392,6 @@ router.delete('/:id',function(req,res){
     if(exists === false){
         res.status(400).send("Es existiert kein Buch mit dieser ID");
     }
-    
 });
 
 
