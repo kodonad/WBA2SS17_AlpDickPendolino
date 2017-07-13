@@ -31,6 +31,7 @@ function readBooksFromFile(){
       var contentObject = "["+tempContent+"]"; // Um aus den Objekten ein Array zumachen welches die Objekte beinhaltet.
       var bookList = JSON.parse(contentObject); // parsed den Inhalt der Datei in ein JSON Objekt.
     }
+    alert("klappt noch alles");
     return bookList;
 }
 
