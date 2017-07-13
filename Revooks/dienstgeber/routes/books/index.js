@@ -25,6 +25,7 @@ var _path = 'routes/books/json/books.json'; // globale Variable
 */
 function readBooksFromFile(){
     
+    console.log(__dirname);
     if(fs.existsSync(_path)){ // wenn die Bücher Datei existiert.
     var content = fs.readFileSync(_path).toString(); // liest die Datei synchron aus. (konvertiert zum String)
     var bookList = "[]";
