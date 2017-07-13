@@ -402,7 +402,7 @@ router.get('/:id/favorites/:favid',function(req,res){
         if(checkFavorite){ // falls das Buch dort existiert.
             
             var reqUrl = serviceUrl+'/books/'+favID; // führt einen GET Befehl auf die Dienstgeber Ressource Books aus.
-                
+                console.log(reqUrl);
                 request.get(reqUrl,function(error,response,body){
                 switch(response.statusCode){
                     case 200:
