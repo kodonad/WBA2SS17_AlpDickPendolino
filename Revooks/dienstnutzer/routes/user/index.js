@@ -9,6 +9,11 @@ var bodyParser = require('body-parser');
 var request = require('request');
 
 
+/* ** *****************************
+   *  GLOBALS
+   ** ***************************** 
+*/
+var _path = __dirname+'/json/user.json';
 var serviceUrl = process.env.SERVICEURL || 'http://localhost:3000';
 /* ** *****************************
    *  METHODS
@@ -23,14 +28,19 @@ var serviceUrl = process.env.SERVICEURL || 'http://localhost:3000';
    ** **************************************************************************
 */
 function readUserFromFile(){
-    var content = fs.readFileSync('routes/user/json/user.json').toString();
+    if(fs.existsSync(_path)){ // Überprüft ob die user.json Datei vorhanden ist
+    var content = fs.readFileSync(_path).toString();
     var userList = "[]";
     if(content.length > 0){
       var tempContent = content.substr(0,content.length-1); // Um das letzte Komma aus dem Inhalt zu entfernen.
       var contentObject = "["+tempContent+"]"; // Um aus den Objekten ein Array zumachen welches die Objekte beinhaltet.
       var userList = JSON.parse(contentObject); // parsed den Inhalt der Datei in ein JSON Objekt.
     }
-    return userList;
+    return userList; // Falls die Datei vorhanden ist, wird der Inhalt dieser Datei zurückgegeben.
+    }
+    else{
+        return false;
+    }
 }
 
 /* ** **************************************************************************
@@ -62,7 +72,7 @@ function checkIfObjectExists(singleObj,objList){
     
     for (var i = 0; i < objList.length;i++){
         
-        if(objList[i].id === singleObj.id){
+        if(objList[i].id == singleObj.id){
             statusFree = false;
             break;
         }    
@@ -80,7 +90,7 @@ function checkIfObjectExists(singleObj,objList){
 */
 function checkIfIdentificatorExists(id,objList){
     for ( var i = 0; i < objList.length;i++){
-        if(objList[i].id === id){
+        if(objList[i].id == id){
             return true;
             break;
         }
@@ -98,18 +108,24 @@ function updateFile(userList){
        geschrieben wurde, wird problemlos der Inhalt der Variable
        userList, welche alle Benutzer enthält, in die user.json geschrieben.
     */
-    fs.truncate("routes/user/json/user.json",0, function(err){
+    fs.truncate(_path,0, function(err){
                
       for(var i = 0 ; i < userList.length;i++){ // schreibt jeden einzelnen Benutzer aus der Liste der Benutzer in die user.json
                  
             var writeLine = JSON.stringify(userList[i])+",";
                
-            fs.appendFile("routes/user/json/user.json",writeLine, function(err){
+            fs.appendFile(_path,writeLine, function(err){
                      
             });
         }
     });
 }
+/* ** **************************************************************************
+   *  updateFavoriteList
+   *  ---------------
+   *  aktualisiert die jeweilige Favoritenliste eines Benutzers.
+   ** **************************************************************************
+*/
 function updateFavoriteList(favoriteList,res,fileUrl){
     fs.truncate(fileUrl,0, function(err){
                
@@ -118,20 +134,25 @@ function updateFavoriteList(favoriteList,res,fileUrl){
             var writeLine = JSON.stringify(favoriteList[i])+",";
                
             fs.appendFile(fileUrl,writeLine, function(err){
-               res.status(200).send("Buch erfolgreich aus der Favoritenliste entfernt.");      
+                  
             });
         }
         
     }); 
 }
-
+/* ** **************************************************************************
+   *  checkIfFavoriteExistsInSuggestion
+   *  ---------------
+   *  Überprüft, ob ein Buch aus der Favoritenliste in den Vorschlägen vorkommt,
+   *  Falls ja, dann wird dieses aus den Vorschlägen entfernt.
+   ** **************************************************************************
+*/
 function checkIfFavoriteExistsInSuggestion(favoriteList,suggestionList){
     // Überprüfung ob das favorisierte Buch in der Vorschlägeliste enthalten ist, sollte dies der Fall sein wird das Buch aus der Liste entfernt.
     for(var i = 0; i < favoriteList.length; i++){
-         for(var s = 0; s < suggestionList.length; s++){
-        console.log("S: "+suggestionList[s].id+" F: "+favoriteList[i].id)
+         for(var s = 0; s < suggestionList.length; s++){ 
         if(suggestionList[s].id == favoriteList[i].id){
-            console.log(suggestionList[s].title);
+
             suggestionList.splice(s,1);
             break;
             }
@@ -140,7 +161,57 @@ function checkIfFavoriteExistsInSuggestion(favoriteList,suggestionList){
    
    return suggestionList;                   
 }
+/* ** **************************************************************************
+   *  checkIfUserObjectIsValid
+   *  ---------------
+   *  Überprüft, ob der zu erstellende Benutzer den Anforderungen entspricht.
+   *  ID, Passwort und Username müssen gesetzt sein. 
+   ** **************************************************************************
+*/
+function checkIfUserObjectIsValid(userObject){
+    var attributeCounter = 0;
+    for(var attr in userObject){
+        attributeCounter++;
+    }
+    if(userObject.id && userObject.username && userObject.password && attributeCounter == 3){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
 
+/* ** **************************************************************************
+   *  checkIfUsernameIsTaken
+   *  ---------------
+   *  Überprüft, ob der Username des zu erstellenden Benutzers bereits existiert.
+   ** **************************************************************************
+*/
+function checkIfUsernameIsTaken(userObject,userList){
+    var isFree = true;
+    for(var i = 0;i < userList.length;i++){
+        if(userObject.username === userList[i].username){
+            isFree = false;
+            break;
+        }
+    }
+    return isFree;
+}
+
+/* ** **************************************************************************
+   *  checkDirectorySync
+   *  ---------------
+   *  Überprüft ob das aktuelle Verzeichnis vorhanden ist, ansonsten wird es angelegt.
+   ** **************************************************************************
+*/
+function checkDirectorySync(directory) {  
+  try {
+    fs.statSync(directory);
+  } 
+    catch(e) {
+    fs.mkdirSync(directory);
+  }
+}
 /* ** *****************************
    *  ROUTING
    ** ***************************** 
@@ -154,7 +225,12 @@ function checkIfFavoriteExistsInSuggestion(favoriteList,suggestionList){
 /* ** GET ** */
 router.get('/',function(req,res){
     var userList = readUserFromFile();
-    res.status(200).send(userList);
+    if(userList){
+        res.status(200).send(userList);
+    }
+    else{
+        res.status(404).send("Es existieren noch keine Benutzer in der Anwendung.")
+    }
 });
 
 /* ** POST ** */
@@ -162,20 +238,45 @@ router.post('/',bodyParser.json(),function(req,res){
     var userObject = req.body; // der hinzuzufügende Benutzer
     var userList = readUserFromFile();
     
+    var isValid = checkIfUserObjectIsValid(userObject); // Überprüft ob das Objekt den Anforderungen entspricht.
+    if(isValid){
+        
     
+    if(userList){
+        
     var check = checkIfObjectExists(userObject,userList);
     
     if(check){
+        var usernameFree = checkIfUsernameIsTaken(userObject,userList);
+        if(usernameFree){
+            
+        
         var writeLine = JSON.stringify(userObject)+","; // das "," dient dazu innerhalb der JSON Datei die einzelnen Benutzer aufzulisten.
-        fs.appendFile("routes/user/json/user.json",writeLine,function(err){
+        fs.appendFile(_path,writeLine,function(err){
         if(err){console.log(err);}             
         });
         res.status(201).send("Benutzer wurde erfolgreich erstellt.");
+        }
+        else{
+            res.status(400).send("Der Benutzername ist leider schon vergeben.");
+        }
     }
     else{
         res.status(400).send("Es gibt bereits schon einen Benutzer mit der ID: "+userObject.id);
     }
-    
+        
+    }
+    else{
+        var writeLine = JSON.stringify(userObject)+","; // das "," dient dazu innerhalb der JSON Datei die einzelnen Benutzer aufzulisten.
+        fs.writeFile(_path,writeLine,function(err){
+        if(err){console.log(err);}             
+        });
+        res.status(201).send("Benutzer wurde erfolgreich erstellt.");
+    }
+    }
+    else{
+        res.status(406).send('kein gültiges Benutzerobjekt\n==>\n "id":integer\n"username":"xyz"\n"password":"xyz"')
+    }
     
 });
 
@@ -193,7 +294,7 @@ router.get('/:id',function(req,res){
     
     for(var i = 0 ; i < userList.length;i++ )
     {
-      if(userList[i].id === reqID){ // falls einer der Benutzer die ID hat die mit der request id übereinstimmen.
+      if(userList[i].id == reqID){ // falls einer der Benutzer die ID hat die mit der request id übereinstimmen.
           exists = true;
           res.status(200).send(userList[i]);
           break;
@@ -254,11 +355,10 @@ router.delete('/:id',function(req,res){
     
     var exists = false;
     for(var i = 0;i < userList.length;i++){
-       if(userList[i].id === reqID){ // falls eines der Bücher die ID hat die mit der request id übereinstimmen.
+       if(userList[i].id == reqID){ // falls eines der Bücher die ID hat die mit der request id übereinstimmen.
            exists = true;
            
            userList.splice(i,1); // entfernt den Benutzer aus der Liste. (i = die aktuelle Stelle im Array)
-           console.log("userList: "+userList);
            updateFile(userList);
          res.status(200).send("der Benutzer wurde erfolgreicht gelöscht.");
        }
@@ -279,9 +379,9 @@ router.get('/:id/favorites',function(req,res){
     var exists = false;
     
     for(var i = 0;i < userList.length;i++){
-        if(userList[i].id === userID){ // wenn der Benutzer existiert
+        if(userList[i].id == userID){ // wenn der Benutzer existiert
             exists = true;
-            var fileUrl = 'routes/user/json/favorites/user_'+userID+'.json'; // der Pfad an den für jeden Benutzer eine Favoritenliste angelegt wird.
+            var fileUrl = __dirname+'/json/favorites/user_'+userID+'.json'; // der Pfad an den für jeden Benutzer eine Favoritenliste angelegt wird.
             if(fs.existsSync(fileUrl)){
                 
             
@@ -305,11 +405,13 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
     
      var exists = false;
      
+     checkDirectorySync(__dirname+'/json/favorites'); // Überprüft ob der Favoriten Ordner schon angelegt ist, falls dies nicht der Fall sein sollte, wird er angelegt.
+            
      for(var i = 0; i < userList.length;i++){
-         if(userList[i].id === userID){ // wenn der Benutzer existiert
+         if(userList[i].id == userID){ // wenn der Benutzer existiert
             exists = true;
              
-            var fileUrl = 'routes/user/json/favorites/user_'+userID+'.json'; // der Pfad an den für jeden Benutzer eine Favoritenliste angelegt wird.
+            var fileUrl = __dirname+'/json/favorites/user_'+userID+'.json'; // der Pfad an den für jeden Benutzer eine Favoritenliste angelegt wird.
             var favoriteBook = req.body; 
     
             var checkIfFileExists = fs.existsSync(fileUrl); // überprüft ob die Datei exisiert
@@ -352,6 +454,7 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
      }
     
         else{  // falls sie nicht existiert.
+            
         var reqUrl = serviceUrl+'/books/'+favoriteBook.id; // Fragt nach ob das Buch mit dieser ID beim Dienstgeber existiert.
          request.get(reqUrl,function(error,response,body){
              
@@ -371,7 +474,8 @@ router.post('/:id/favorites',bodyParser.json(),function(req,res){
                  
                  default:  res.status(500).send(error);
              }
-            })
+            });    
+        
         }
              
       }
@@ -402,7 +506,6 @@ router.get('/:id/favorites/:favid',function(req,res){
         if(checkFavorite){ // falls das Buch dort existiert.
             
             var reqUrl = serviceUrl+'/books/'+favID; // führt einen GET Befehl auf die Dienstgeber Ressource Books aus.
-                console.log(reqUrl);
                 request.get(reqUrl,function(error,response,body){
                 switch(response.statusCode){
                     case 200:
@@ -440,7 +543,7 @@ router.delete('/:id/favorites/:favid',function(req,res){
     
     var checkUser = checkIfIdentificatorExists(userID,userList); // Überprüft ob der Benutzer existiert.
     if(checkUser){ // falls der Benutzer existiert.
-        var fileUrl = 'routes/user/json/favorites/user_'+userID+'.json'; // Favoriten Datei des Nutzers : Bsp: user_2.json
+        var fileUrl = __dirname+'/json/favorites/user_'+userID+'.json'; // Favoriten Datei des Nutzers : Bsp: user_2.json
         if(fs.existsSync(fileUrl)){
         var favoriteList = readFavoritesFromFile(fileUrl); // liest alle Bücher aus der Favoritenliste aus.
         
@@ -467,6 +570,7 @@ router.delete('/:id/favorites/:favid',function(req,res){
                             }
                         }
                         updateFavoriteList(newFavoriteList,res,fileUrl);    // Aktualisiert die Favoritenliste des aktuellen Benutzers.
+                        res.status(200).send("Das Buch wurder erfolgreich aus der Favoritenliste entfernt.");
                         
                     }
                     else{
@@ -478,7 +582,8 @@ router.delete('/:id/favorites/:favid',function(req,res){
                     res.status(response.statusCode).send(body);
                     break;
                     
-                default: break;
+                default:
+                break;
             }
             
         });

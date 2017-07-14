@@ -8,6 +8,11 @@ var request = require('request');
 var fs = require('fs');
 var bodyParser = require('body-parser');
 
+
+/* ** *****************************
+   *  GLOBALS
+   ** ***************************** 
+*/
 var _path = __dirname+'/json/books.json'; // globale Variable
 
 /* ** *****************************
