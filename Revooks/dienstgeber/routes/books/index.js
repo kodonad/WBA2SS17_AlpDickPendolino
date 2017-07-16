@@ -56,7 +56,7 @@ function checkIfExistingBook(singleBook,books){
     var statusFree = true; // Sagt aus ob ein Buch vorhanden ist oder nicht, true = ist nicht vorhanden, false = ist vorhanden.
     for (var i = 0; i < books.length;i++){
         
-        if(books[i].id === singleBook.id){
+        if(books[i].id == singleBook.id){
             statusFree = false;
             break;
         }   
