@@ -16,11 +16,13 @@ var settings = {
 
 //binden des Pfades an eine Variable
 const user = require('./routes/user');
-//const books = require('./routes/books');
+const books = require('./routes/books');
+const reviews = require('./routes/reviews');
 
 //einbinden der Pfade.
 app.use("/user",user);
-//app.use("/books",books);
+app.use("/books",books);
+app.use("/reviews",reviews);
 
 app.get("/",function(req,res){
    res.send("Hello World").end();
