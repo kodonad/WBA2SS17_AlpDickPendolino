@@ -87,6 +87,49 @@ function checkIfReviewIsExisting(id,reviewList){
     return temp;
 }
 
+/* ** **************************************************************************
+   *  checkIfValidUpdate
+   *  ---------------
+   *  diese Funktion dient dazu, zu überprüfen ob nur das Message Attribut gesetzt ist,
+   *  um die Aktualisierung erfolgreich durchzuführen.
+   ** **************************************************************************
+*/
+function checkIfValidUpdate(reviewObject){
+     var attrCounter = 0;
+    for(var attr in reviewObject){
+        attrCounter++;
+    }
+    if(reviewObject.message && attrCounter == 1){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+/* ** **************************************************************************
+   *  UpdateFile
+   *  ---------------
+   *  aktualisiert die Rezensionen Datei
+   ** **************************************************************************
+*/
+function UpdateFile(reviewList){
+    var path = _pathOfReviews;
+     
+    /* truncate kürzt den Inhalt der JSON Datei auf die angegebene Stelle, die hier 0 beträgt. Danach wird jede Rezension einzeln wieder in die Datei eingefügt.
+    */
+    fs.truncate(path,0, function(err){
+               
+      for(var i = 0 ; i < reviewList.length;i++){ // schreibt jeden einzelnen Benutzer aus der Liste der Benutzer in die user.json
+                 
+            var writeLine = JSON.stringify(reviewList[i])+",";
+               
+            fs.appendFile(path,writeLine, function(err){
+                     
+            });
+        }
+    });
+}
+
 /* ** *****************************
    *  ROUTING
    ** ***************************** 
@@ -174,6 +217,95 @@ router.post("/",bodyParser.json(),function(req,res){
 });
 
 
+/* ---------------------------------
+   >>  Ressource (reviews/:id)
+   ---------------------------------
+*/
+
+/* ** GET ** */
+router.get("/:id",function(req,res){
+   var id = req.params.id;
+   var reviewList = getReviewsFromFile();
+   
+   var exists = false;
+   for(var i = 0; i < reviewList.length ; i++){
+       if(reviewList[i].id == id){
+           exists = true;
+           res.status(200).send(reviewList[i]);
+           break;
+       }
+   }
+   if(exists === false){
+       res.status(404).send("Es wurde kein Produkt mit der ID: "+id+" gefunden.");
+   }
+   
+    
+});
+
+
+
+/* ** PUT ** */
+router.put("/:id",bodyParser.json(),function(req,res){
+       var reviewObject = req.body;
+
+    var check = checkIfValidUpdate(reviewObject);
+    if(check){
+    if(fs.existsSync(_pathOfReviews)){ // Überprüft ob das Buch mit der ID , eine Datei mit Rezensionen besitzt.
+                        var reviewList = getReviewsFromFile();
+                        var status = false; 
+               
+                        for (var i = 0; i < reviewList.length; i++){
+                             if(reviewList[i].id == req.params.id){ // Überprüft ob die Rezension mit der angeforderten ID existiert.
+                                 status = true;
+                                 
+                                 reviewList[i].message = req.body.message; // schreibt den bearbeiteten Text, in die Message Variable der Rezension.
+                                 
+                                 UpdateFile(reviewList); // Aktualisiert die Datei der Rezensionen, in dem die Datei gelöscht wird und alle Rezensionen wieder zur Datei hinzugefügt werden.
+                                 res.status(201).send("Die Rezension wurde aktualisiert.");
+                                 break; // beendet die for-schleife
+                             }        
+                        }
+                        
+                        
+                        if (status === false){
+                            res.status(404).send("Die angeforderte Rezension wurde nicht gefunden.");
+                        }
+                     }
+                 else {
+                     res.status(404).send("Es existieren noch keinerlei Rezensionen in dieser Anwendung.");
+                 }
+    }
+    else{
+         res.status(406).send("Ungültiges Objekt, bitte beachten sie dass nur die MESSAGE gesetzt sein darf.");
+    }
+});
+
+/* ** DELETE ** */
+router.delete("/:id",function(req,res){
+        if(fs.existsSync(_pathOfReviews)){ 
+            var reviewList = getReviewsFromFile();
+            var status = false; 
+               
+            for (var i = 0; i < reviewList.length; i++){
+                if(reviewList[i].id == req.params.id){ // wenn eine Rezension mit der ID aus der URL gefunden wurde
+                   status = true;
+                    
+                    reviewList.splice(i,1); // Löscht den Wert an der i-ten Stelle.
+                    UpdateFile(reviewList); // Aktualisiert die Datei der Rezensionen, in dem die Datei gelöscht wird und alle Rezensionen wieder zur Datei hinzugefügt werden.
+                    res.status(200).send("Die Rezension wurde erfolgreich entfernt.");
+                    break; // beendet die for-schleife
+                                 
+                }        
+            }
+            if (status === false){
+                res.status(404).send("Die angeforderte Rezension konnte nicht gefunden werden.");
+                }
+            }
+            else {
+                res.status(404).send("Es existieren noch keinerlei Rezensionen in dieser Anwendung.");
+            }
+                
+});
 
 //Bereitstellen des Moduls um require in der app.js einbinden zu können.
 module.exports = router;
