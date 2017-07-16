@@ -188,11 +188,16 @@ function writeBookListIntoFile(bookList){
 function getBooksFromApi(queryString,res){
     var url = "https://www.googleapis.com/books/v1/volumes?q="+queryString; // Google API Call Url, inklusive des benötigten Querys.
     request.get(url, function(error,response,body){ // API Request
+                if(error){
+                    res.status(500).send(error);
+                }
+                else{
                 var responseBody;
                 var bookList;
                 responseBody = JSON.parse(body);
                 var bookList = writeBookListIntoFile(responseBody);
                 res.send(bookList);
+                }
                     });
     
 }
