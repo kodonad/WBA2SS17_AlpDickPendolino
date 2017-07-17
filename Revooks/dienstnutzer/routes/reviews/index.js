@@ -7,6 +7,10 @@ var router = express.Router();
 var request = require('request');
 var fs = require('fs');
 var bodyParser = require('body-parser');
+var http = require('http');
+var faye = require('faye');
+
+
 
 /* ** *****************************
    *  GLOBALS
@@ -130,6 +134,19 @@ function UpdateFile(reviewList){
     });
 }
 
+/* ** **************************************************************************
+   *  publishNewsToClient (asynchrone Funktion (faye))
+   *  ---------------
+   *  teilt den Benutzern mit wenn ein Buch rezensiert wurde,
+   *  Inhalt dieser Nachricht: Welches Buch und von wem rezensiert wurde.
+   ** **************************************************************************
+*/
+function publishNewsToClient(userName,bookTitle){
+    client.publish('/news', {
+    text:  userName+" hat soeben eine Rezension zu dem Buch mit dem Titel "+bookTitle+" verfasst."
+    });
+}
+
 /* ** *****************************
    *  ROUTING
    ** ***************************** 
@@ -147,6 +164,8 @@ router.get("/",function(req,res){
         
         var reviewList = getReviewsFromFile(); // Liest alle Rezensionen aus der Datei aus.
         res.status(200).send(reviewList);
+        
+        
     }
     else{
         res.status(404).send("Es wurden noch keine Rezensionen verfasst");
@@ -156,16 +175,19 @@ router.get("/",function(req,res){
 router.post("/",bodyParser.json(),function(req,res){
     var reviewObject = req.body;
     var check = checkIfValidReview(reviewObject); // überprüft ob die Rezension valide ist
-    
+    var bookTitle; // Dient zur Zwischenspeicherung des Buchtitels.
+    var userName;  // Dient zur Zwischenspeicherung des Benutzernamens.
     if(check){
      request.get(_serviceUrl+"/books/"+reviewObject.bookID,function(error,response,body){ // Fragt die Bücher  mit der angegebenen ID des Dienstgebers an.
          switch(response.statusCode){ // überprüft die Anfrage, wenn erfolgreich 200, wenn 404 nicht erfolgreich.
              case 200:
+            bookTitle = JSON.parse(body).title; // der Titel wird aus dem Request in die Variable gespeichert.     
             request.get("http://localhost:3001/user/"+reviewObject.userID,function(error,response,body){ // Fragt die Benutzer  mit der angegebenen ID des Dienstgebers an.
                  
             switch(response.statusCode){ // überprüft die Anfrage, wenn erfolgreich 200, wenn 404 nicht erfolgreich.
                     
-                case 200:  // Ab Hier Gehts erst los , Zuerst wurde überprüft ob das Buch was man rezensieren möchte existiert und direkt danach wurde überprüft ob der Benutzer existiert.      
+                case 200:  // Ab Hier Gehts erst los , Zuerst wurde überprüft ob das Buch was man rezensieren möchte existiert und direkt danach wurde überprüft ob der Benutzer existiert.
+                    userName = JSON.parse(body).username; // der Benutzername wird aus dem Request in die Variable gespeichert.
                 var writeLine = JSON.stringify(reviewObject)+","; // das "," dient dazu innerhalb der JSON Datei die einzelnen Rezensionen aufzulisten.
                     
                 if(fs.existsSync(_pathOfReviews)){ // Überprüft ob das Produkt mit der ID , eine Datei mit Rezensionen besitzt.
@@ -180,6 +202,7 @@ router.post("/",bodyParser.json(),function(req,res){
                             if(err){console.log(err);}   
                         });
                         res.status(201).send("Rezension wurde erfolgreich erstellt.");
+                        publishNewsToClient(userName,bookTitle);
                     }
                     else{
                         res.status(400).send("Es existiert bereits eine Rezension mit dieser ID");
@@ -187,7 +210,8 @@ router.post("/",bodyParser.json(),function(req,res){
                   }
                     else{
                         fs.writeFile(_pathOfReviews,writeLine,function(err){
-                           res.status(201).send("Rezension wurde erfolgreich erstellt.")  
+                           res.status(201).send("Rezension wurde erfolgreich erstellt.");
+                            publishNewsToClient(userName,bookTitle);
                          });
                     }
                     
@@ -306,6 +330,30 @@ router.delete("/:id",function(req,res){
             }
                 
 });
+
+/* ----------------------------------
+   >>  FAYE SETUP (SERVER)
+   ----------------------------------
+*/
+
+var server = http.createServer();
+var bayeux = new faye.NodeAdapter({
+    mount: '/faye',
+    timeout: 45
+});
+bayeux.attach(server);
+server.listen(8000,function(){
+    console.log("Faye läuft");
+});
+
+
+/* Serverseitiger Client */
+var client = new faye.Client('http://localhost:8000/faye');
+
+client.subscribe('/news',function(message){
+    console.log(message.text);
+});
+
 
 //Bereitstellen des Moduls um require in der app.js einbinden zu können.
 module.exports = router;
