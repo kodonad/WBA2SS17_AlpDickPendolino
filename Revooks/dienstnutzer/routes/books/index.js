@@ -31,6 +31,17 @@ var serviceUrl = process.env.SERVICEURL || 'http://localhost:3000';
 /* ** GET ** */
 router.get('/',function(req,res){
     var reqUrl = serviceUrl+'/books/';
+    if(Object.keys(req.query).length > 0){ // überprüft ob Parameter angegeben sind
+        for(var param in req.query){
+            
+            // Der switch überprüft, welcher Paramater gesetzt ist, es kann immer nur einer gesetzt sein.
+            switch(param){
+                case 'title':  reqUrl = serviceUrl+'/books?title='+req.query[param]; // Wenn Titel gesetzt ist wird die Dienstgeber Ressource aufgerufen mit dem gleichen Parameter.           
+                    break;
+                default: res.send("");
+            }
+        }
+    }
     request.get(reqUrl,function(error,response,body){
         switch(response.statusCode){
             case 200: res.status(response.statusCode).send(JSON.parse(body));
