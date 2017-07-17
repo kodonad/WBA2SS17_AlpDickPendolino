@@ -18,11 +18,13 @@ var settings = {
 const user = require('./routes/user');
 const books = require('./routes/books');
 const reviews = require('./routes/reviews');
+const suggestions = require('./routes/suggestions');
 
 //einbinden der Pfade.
 app.use("/user",user);
 app.use("/books",books);
 app.use("/reviews",reviews);
+app.use("/suggestions",suggestions);
 
 app.get("/",function(req,res){
    res.send("Hello World").end();
